@@ -16,3 +16,5 @@ target/
 
 #IntelliJ folders
 .idea/
+
+*.iml
