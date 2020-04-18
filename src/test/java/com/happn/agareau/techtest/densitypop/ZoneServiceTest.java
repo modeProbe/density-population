@@ -2,8 +2,11 @@ package com.happn.agareau.techtest.densitypop;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
 import com.happn.agareau.techtest.densitypop.domain.Zone;
+import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.properties.CoordinatesProperties;
 import com.happn.agareau.techtest.densitypop.service.ZoneService;
+import io.vavr.collection.Seq;
+import io.vavr.control.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.assertj.vavr.api.VavrAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.lenient;
 
@@ -68,14 +72,15 @@ class ZoneServiceTest {
         int nbZones = 2;
 
         //when
-        List<Zone> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
+        Validation<Seq<Error>, List<Zone>> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
 
         //THEN
-        assertEquals(2, mostDenseZone.size());
-        Zone zone1 = mostDenseZone.get(0);
+        assertThat(mostDenseZone).isValid();
+        assertEquals(2, mostDenseZone.get().size());
+        Zone zone1 = mostDenseZone.get().get(0);
         Zone zoneExpected = new Zone(-5.5, 8.0, -5, 8.5);
         assertEquals(zoneExpected, zone1);
-        Zone zone2 = mostDenseZone.get(1);
+        Zone zone2 = mostDenseZone.get().get(1);
         Zone zoneExpected2 = new Zone(-6.0, 8.0, -5.5, 8.5);
         assertEquals(zoneExpected2, zone2);
 
@@ -89,21 +94,22 @@ class ZoneServiceTest {
         int nbZones = 200000;
 
         //WHEN
-        List<Zone> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
+        Validation<Seq<Error>, List<Zone>> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
 
 
         //THEN
+        assertThat(mostDenseZone).isValid();
         Zone inside = new Zone(89.5, 179.5, 90, 180);
-        assertTrue(mostDenseZone.contains(inside));
+        assertTrue(mostDenseZone.get().contains(inside));
 
         Zone outsideOne = new Zone(90, 179.5, 90.5, 180);
-        assertFalse(mostDenseZone.contains(outsideOne));
+        assertFalse(mostDenseZone.get().contains(outsideOne));
 
         Zone outsideTwo = new Zone(89.5, 180, 90, 180.5);
-        assertFalse(mostDenseZone.contains(outsideTwo));
+        assertFalse(mostDenseZone.get().contains(outsideTwo));
 
         Zone outsideThree = new Zone(90, 180, 90.5, 180.5);
-        assertFalse(mostDenseZone.contains(outsideThree));
+        assertFalse(mostDenseZone.get().contains(outsideThree));
     }
 
     @Test
@@ -113,11 +119,12 @@ class ZoneServiceTest {
         int nbZones = 20000000;
 
         //when
-        List<Zone> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
+        Validation<Seq<Error>, List<Zone>> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
 
         //THEN
         //NbZones is greater than size list return by findMostDenseZone so we return all the elements from the list
-        assertEquals(12, mostDenseZone.size());
+        assertThat(mostDenseZone).isValid();
+        assertEquals(12, mostDenseZone.get().size());
 
 
     }

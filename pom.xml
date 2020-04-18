@@ -18,7 +18,8 @@
         <java.version>12</java.version>
         <mockito-junit-jupiter.version>3.2.4</mockito-junit-jupiter.version>
         <junit-jupiter-engine.version>5.5.2</junit-jupiter-engine.version>
-        <h2.version>1.4.200</h2.version>
+        <vavr.version>0.10.2</vavr.version>
+        <assertj-vavr.version>0.2.0</assertj-vavr.version>
     </properties>
 
     <dependencies>
@@ -31,6 +32,11 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr</artifactId>
+            <version>${vavr.version}</version>
         </dependency>
 
         <!-- TEST-->
@@ -55,6 +61,12 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>${mockito-junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-vavr</artifactId>
+            <version>${assertj-vavr.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

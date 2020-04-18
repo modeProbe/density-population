@@ -2,7 +2,10 @@ package com.happn.agareau.techtest.densitypop.controller;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
 import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
+import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.service.TSVService;
+import io.vavr.collection.Seq;
+import io.vavr.control.Validation;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,9 +27,9 @@ public class FileUploadController {
     @ResponseStatus(HttpStatus.CREATED)
     public List<PointOfInterest> handleFileUpload(@RequestParam("file") MultipartFile file) {
 
-        List<PointOfInterest> pointOfInterests = tsvService.uploadAndReadTSVFileAndReturnListPOI(file);
-        singletonListPOI.setPointOfInterests(pointOfInterests);
-        return pointOfInterests;
+        Validation<Seq<Error>, List<PointOfInterest>> pointOfInterest = tsvService.uploadAndReadTSVFileAndReturnListPOI(file);
+        singletonListPOI.setPointOfInterests(pointOfInterest.get());
+        return pointOfInterest.get();
 
     }
 

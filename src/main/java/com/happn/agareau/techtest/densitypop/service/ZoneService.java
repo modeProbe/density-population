@@ -2,18 +2,26 @@ package com.happn.agareau.techtest.densitypop.service;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
 import com.happn.agareau.techtest.densitypop.domain.Zone;
-import com.happn.agareau.techtest.densitypop.error.ErrorCode;
-import com.happn.agareau.techtest.densitypop.error.ServiceException;
+import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.properties.CoordinatesProperties;
+import io.vavr.collection.Seq;
+import io.vavr.control.Option;
+import io.vavr.control.Try;
+import io.vavr.control.Validation;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.happn.agareau.techtest.densitypop.error.Error.NbZonesNegError;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 @Service
@@ -24,31 +32,29 @@ public class ZoneService {
 
     public long nbPoiInZone(Zone zone, List<PointOfInterest> pointOfInterestList) {
 
-        List<PointOfInterest> collect = Optional.ofNullable(pointOfInterestList)
-                .orElseGet(ArrayList::new)
-                .stream()
-                .filter(pointOfInterest -> pointOfInterest.getLatitude() >= zone.getMinLat() && pointOfInterest.getLatitude() <= zone.getMaxLat())
-                .filter(pointOfInterest -> pointOfInterest.getLongitude() >= zone.getMinLong() && pointOfInterest.getLongitude() <= zone.getMaxLong())
-                .collect(Collectors.toList());
+        List<PointOfInterest> collectedPOIList = Option.of(pointOfInterestList)
+                .map(pointOfInterests -> pointOfInterests
+                        .stream()
+                        .filter(pointOfInterest -> pointOfInterest.getLatitude() >= zone.getMinLat() && pointOfInterest.getLatitude() <= zone.getMaxLat())
+                        .filter(pointOfInterest -> pointOfInterest.getLongitude() >= zone.getMinLong() && pointOfInterest.getLongitude() <= zone.getMaxLong())
+                        .collect(Collectors.toList())
+                ).getOrElse(Collections.emptyList());
 
-        return collect.size();
+        return collectedPOIList.size();
+
     }
 
 
-    public List<Zone> findMostDenseZone(int nbZones, List<PointOfInterest> pointOfInterests) {
+    public Validation<Seq<Error>, List<Zone>> findMostDenseZone(int nbZones, List<PointOfInterest> pointOfInterests) {
 
-        if (nbZones < 0) {
-            throw new ServiceException(ErrorCode.NB_ZONES_NEGATIVE);
-        }
-
-        Map<Zone, Long> mapZoneNbPoi = Optional
-                .ofNullable(pointOfInterests)
-                .orElseGet(ArrayList::new)
-                .stream()
-                .filter(isPOICorrect)
-                .flatMap(getZoneFromPoi)
-                .filter(this::checkZone)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Map<Zone, Long> mapZoneNbPoi = Option.of(pointOfInterests)
+                .map(pointOfInterests1 -> pointOfInterests1
+                        .stream()
+                        .filter(isPOICorrect)
+                        .flatMap(getZoneFromPoi)
+                        .filter(this::checkZone)
+                        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting())))
+                .getOrElse(Collections.emptyMap());
 
         LinkedHashMap<Zone, Long> sortedMap = mapZoneNbPoi
                 .entrySet()
@@ -58,11 +64,10 @@ public class ZoneService {
                         toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
                                 LinkedHashMap::new));
 
-        return sortedMap
-                .keySet()
-                .stream()
-                .limit(nbZones)
-                .collect(Collectors.toList());
+        return Try.of(() -> sortedMap.keySet().stream().limit(nbZones))
+                .toValidation(e -> new NbZonesNegError(nbZones, e))
+                .mapError(Error::logThenBuildSeqError)
+                .map(zoneStream -> zoneStream.collect(toList()));
     }
 
     //Public for testing purpose
