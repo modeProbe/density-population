@@ -39,9 +39,25 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return String.format("Number of zones cannot be negative: %s%n%s", nbZones, throwable);
+            return String.format("Number of zones cannot be negative: %d%n%s", nbZones, throwable);
         }
     }
+
+    public static class CreatePOIEror extends Error {
+
+        private final String name;
+
+        public CreatePOIEror(String name, Throwable throwable) {
+            super(throwable);
+            this.name = name;
+        }
+
+        @Override
+        public String getMessage() {
+            return String.format("Unable to create POI : %s%n%s", name, throwable);
+        }
+    }
+
 
     public static class UploadFileError extends Error {
 

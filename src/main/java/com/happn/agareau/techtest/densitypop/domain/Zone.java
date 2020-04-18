@@ -16,6 +16,12 @@ public class Zone {
     private double maxLat;
     private double maxLong;
 
+    public Zone(double minLat, double minLong) {
+        this.minLat = minLat;
+        this.minLong = minLong;
+        this.maxLat = minLat + 0.5;
+        this.maxLong = minLong + 0.5;
+    }
 
     public double getMinLat() {
         return minLat;

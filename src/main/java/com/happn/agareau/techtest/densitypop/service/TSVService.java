@@ -1,6 +1,7 @@
 package com.happn.agareau.techtest.densitypop.service;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
+import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
 import com.happn.agareau.techtest.densitypop.error.Error;
 import io.vavr.collection.Seq;
 import io.vavr.control.Try;
@@ -13,28 +14,29 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.happn.agareau.techtest.densitypop.error.Error.ReadFileError;
 import static com.happn.agareau.techtest.densitypop.error.Error.UploadFileError;
+import static java.time.LocalDateTime.now;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @AllArgsConstructor
+
 public class TSVService {
 
     private static final Logger logger = LoggerFactory.getLogger(TSVService.class);
     private static final String TAB = "\\t";
     private static final int NB_ELEMS_PER_LINE = 3;
     private static final String PREFIX_TEMP_FILE = "temp-file-name";
+    private final SingletonListPOI singletonListPOI;
 
     public Validation<Seq<Error>, List<PointOfInterest>> uploadAndReadTSVFileAndReturnListPOI(MultipartFile file) {
         return Try.of(() -> File
-                .createTempFile(PREFIX_TEMP_FILE + LocalDateTime.now(), ".tsv"))
+                .createTempFile(PREFIX_TEMP_FILE + now(), ".tsv"))
                 .toValidation(e -> new UploadFileError(file.getName(), e))
                 .mapError(Error::logThenBuildSeqError)
                 .flatMap(file1 -> Try.run(() -> file.transferTo(file1))
@@ -42,7 +44,8 @@ public class TSVService {
                         .mapError(Error::logThenBuildSeqError)
                         .map(aVoid -> file1))
                 .peek(File::deleteOnExit)
-                .flatMap(this::createListPOIFromFile);
+                .flatMap(this::createListPOIFromFile)
+                .peek(singletonListPOI::setPointOfInterests);
     }
 
     //public for testing purpose
@@ -53,24 +56,20 @@ public class TSVService {
                         .stream()
                         .skip(1)
                         .map(mapLineToPOI)
-                        .collect(Collectors.toList()));
+                        .collect(toList()));
 
     }
 
     private Validation<Seq<Error>, List<String>> readTSVFile(File file) {
 
-
-        Validation<Seq<Error>, Stream<String>> streams = Try.of(() -> Files
+        return Try.of(() -> Files
                 .lines(file.toPath()))
                 .toValidation(e -> new ReadFileError(file.getName(), e))
-                .mapError(Error::logThenBuildSeqError);
-
-        return streams.map(stringStream ->
-                stringStream
+                .mapError(Error::logThenBuildSeqError)
+                .map(stringStream -> stringStream
                         .filter(line -> !line.isEmpty())
                         .filter(isLineCorrect)
-                        .collect(Collectors.toList()));
-
+                        .collect(toList()));
     }
 
     private final Predicate<String> isLineCorrect = (line) -> {

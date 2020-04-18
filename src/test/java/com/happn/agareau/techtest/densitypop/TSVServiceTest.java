@@ -1,6 +1,7 @@
 package com.happn.agareau.techtest.densitypop;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
+import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
 import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.service.TSVService;
 import io.vavr.collection.Seq;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.util.List;
@@ -19,10 +19,10 @@ import static org.assertj.vavr.api.VavrAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles("test")
 class TSVServiceTest {
 
-    private final TSVService tsvService = new TSVService();
+    private final SingletonListPOI singletonListPOI = new SingletonListPOI();
+    private final TSVService tsvService = new TSVService(singletonListPOI);
 
     @Test
     void should_return_list_poi() throws IOException {
