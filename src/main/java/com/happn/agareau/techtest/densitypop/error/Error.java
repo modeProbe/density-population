@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.vavr.API.Seq;
+import static java.lang.String.format;
+
 @AllArgsConstructor
 public abstract class Error {
     private static final Logger logger = LoggerFactory.getLogger(Error.class);
@@ -24,7 +27,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return String.format("Unable to read file : %s%n%s", name, throwable);
+            return format("Unable to read file : %s%n%s", name, throwable);
         }
     }
 
@@ -39,7 +42,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return String.format("Number of zones cannot be negative: %d%n%s", nbZones, throwable);
+            return format("Number of zones cannot be negative: %d%n%s", nbZones, throwable);
         }
     }
 
@@ -54,7 +57,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return String.format("Unable to create POI : %s%n%s", name, throwable);
+            return format("Unable to create POI : %s%n%s", name, throwable);
         }
     }
 
@@ -70,12 +73,12 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return String.format("Unable to upload file : %s%n%s", name, throwable);
+            return format("Unable to upload file : %s%n%s", name, throwable);
         }
     }
 
     public Seq<Error> logThenBuildSeqError() {
         logger.error(getMessage());
-        return API.Seq(this);
+        return Seq(this);
     }
 }
