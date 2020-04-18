@@ -37,6 +37,10 @@ public class TSVService {
                 .createTempFile(PREFIX_TEMP_FILE + LocalDateTime.now(), ".tsv"))
                 .toValidation(e -> new UploadFileError(file.getName(), e))
                 .mapError(Error::logThenBuildSeqError)
+                .flatMap(file1 -> Try.run(() -> file.transferTo(file1))
+                        .toValidation(e -> new UploadFileError(file.getName(), e))
+                        .mapError(Error::logThenBuildSeqError)
+                        .map(aVoid -> file1))
                 .peek(File::deleteOnExit)
                 .flatMap(this::createListPOIFromFile);
     }
