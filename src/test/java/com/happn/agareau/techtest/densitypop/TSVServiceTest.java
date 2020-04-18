@@ -1,24 +1,28 @@
 package com.happn.agareau.techtest.densitypop;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
+import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
+import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.service.TSVService;
+import io.vavr.collection.Seq;
+import io.vavr.control.Validation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.util.List;
 
+import static org.assertj.vavr.api.VavrAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-@ActiveProfiles("test")
 class TSVServiceTest {
 
-    private final TSVService tsvService = new TSVService();
+    private final SingletonListPOI singletonListPOI = new SingletonListPOI();
+    private final TSVService tsvService = new TSVService(singletonListPOI);
 
     @Test
     void should_return_list_poi() throws IOException {
@@ -26,12 +30,13 @@ class TSVServiceTest {
         Resource resource = new ClassPathResource("coordinatesTest.tsv");
 
         //WHEN
-        List<PointOfInterest> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
+        Validation<Seq<Error>, List<PointOfInterest>> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
 
         //THEN
-        assertNotNull(listPOIFromFile);
-        assertEquals(9, listPOIFromFile.size());
-        PointOfInterest pointOfInterest = listPOIFromFile.get(0);
+        assertThat(listPOIFromFile).isValid();
+        assertNotNull(listPOIFromFile.get());
+        assertEquals(9, listPOIFromFile.get().size());
+        PointOfInterest pointOfInterest = listPOIFromFile.get().get(0);
         assertNotNull(pointOfInterest);
         assertEquals(-48.6, pointOfInterest.getLatitude());
     }
@@ -42,12 +47,13 @@ class TSVServiceTest {
         Resource resource = new ClassPathResource("coordinatesTestWithIncorrectAndEmptyLines.tsv");
 
         //WHEN
-        List<PointOfInterest> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
+        Validation<Seq<Error>, List<PointOfInterest>> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
 
         //THEN
-        assertNotNull(listPOIFromFile);
-        assertEquals(9, listPOIFromFile.size());
-        PointOfInterest pointOfInterest = listPOIFromFile.get(0);
+        assertThat(listPOIFromFile).isValid();
+        assertNotNull(listPOIFromFile.get());
+        assertEquals(9, listPOIFromFile.get().size());
+        PointOfInterest pointOfInterest = listPOIFromFile.get().get(0);
         assertNotNull(pointOfInterest);
         assertEquals(-48.6, pointOfInterest.getLatitude());
     }
@@ -59,10 +65,11 @@ class TSVServiceTest {
 
 
         //WHEN
-        List<PointOfInterest> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
+        Validation<Seq<Error>, List<PointOfInterest>> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
 
         //THEN
-        assertTrue(listPOIFromFile.isEmpty());
+        assertThat(listPOIFromFile).isValid();
+        assertTrue(listPOIFromFile.get().isEmpty());
     }
 
     @Test
@@ -71,11 +78,12 @@ class TSVServiceTest {
         Resource resource = new ClassPathResource("LargeFile100000lines.tsv");
 
         //WHEN
-        List<PointOfInterest> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
+        Validation<Seq<Error>, List<PointOfInterest>> listPOIFromFile = tsvService.createListPOIFromFile(resource.getFile());
 
         //THEN
+        assertThat(listPOIFromFile).isValid();
         assertNotNull(listPOIFromFile);
-        assertEquals(100000, listPOIFromFile.size());
+        assertEquals(100000, listPOIFromFile.get().size());
     }
 
 }

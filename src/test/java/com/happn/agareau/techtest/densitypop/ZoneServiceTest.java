@@ -1,9 +1,13 @@
 package com.happn.agareau.techtest.densitypop;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
+import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
 import com.happn.agareau.techtest.densitypop.domain.Zone;
+import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.properties.CoordinatesProperties;
 import com.happn.agareau.techtest.densitypop.service.ZoneService;
+import io.vavr.collection.Seq;
+import io.vavr.control.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.assertj.vavr.api.VavrAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.lenient;
 
@@ -24,24 +29,25 @@ class ZoneServiceTest {
 
     private ZoneService zoneService;
 
+
     @BeforeEach
     void setup() {
-
+        SingletonListPOI singletonListPOI = new SingletonListPOI();
+        singletonListPOI.setPointOfInterests(createListPOI());
         lenient().when(coordinatesProperties.getMinLatitude()).thenReturn(-90.0);
         lenient().when(coordinatesProperties.getMaxLatitude()).thenReturn(90.0);
         lenient().when(coordinatesProperties.getMinLongitude()).thenReturn(-180.0);
         lenient().when(coordinatesProperties.getMaxLongitude()).thenReturn(180.0);
-        zoneService = new ZoneService(coordinatesProperties);
+        zoneService = new ZoneService(singletonListPOI, coordinatesProperties);
     }
 
     @Test
     void should_find_nb_poi_in_zone() {
         //GIVEN
-        List<PointOfInterest> pointOfInterests = createListPOI();
         Zone zone = new Zone(-5.5, 8.0, -5, 8.5);
 
         //WHEN
-        long nbPoiInZone = zoneService.nbPoiInZone(zone, pointOfInterests);
+        long nbPoiInZone = zoneService.nbPoiInZone(zone);
 
         //THEN
         assertEquals(3, nbPoiInZone);
@@ -55,7 +61,7 @@ class ZoneServiceTest {
         Zone zone = new Zone(-18, 58.0, -17.5, 58.5);
 
         //WHEN
-        long nbPoiInZone = zoneService.nbPoiInZone(zone, pointOfInterests);
+        long nbPoiInZone = zoneService.nbPoiInZone(zone);
 
         //THEN
         assertEquals(0, nbPoiInZone);
@@ -68,14 +74,15 @@ class ZoneServiceTest {
         int nbZones = 2;
 
         //when
-        List<Zone> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
+        Validation<Seq<Error>, List<Zone>> mostDenseZone = zoneService.findMostDenseZone(nbZones);
 
         //THEN
-        assertEquals(2, mostDenseZone.size());
-        Zone zone1 = mostDenseZone.get(0);
+        assertThat(mostDenseZone).isValid();
+        assertEquals(2, mostDenseZone.get().size());
+        Zone zone1 = mostDenseZone.get().get(0);
         Zone zoneExpected = new Zone(-5.5, 8.0, -5, 8.5);
         assertEquals(zoneExpected, zone1);
-        Zone zone2 = mostDenseZone.get(1);
+        Zone zone2 = mostDenseZone.get().get(1);
         Zone zoneExpected2 = new Zone(-6.0, 8.0, -5.5, 8.5);
         assertEquals(zoneExpected2, zone2);
 
@@ -86,24 +93,28 @@ class ZoneServiceTest {
         //GIVEN
         List<PointOfInterest> pointOfInterests = new java.util.ArrayList<>(createListPOI());
         pointOfInterests.add(new PointOfInterest("idExt", 90, 180));
+        SingletonListPOI singletonListPOI = new SingletonListPOI();
+        singletonListPOI.setPointOfInterests(pointOfInterests);
+        zoneService = new ZoneService(singletonListPOI, coordinatesProperties);
         int nbZones = 200000;
 
         //WHEN
-        List<Zone> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
+        Validation<Seq<Error>, List<Zone>> mostDenseZone = zoneService.findMostDenseZone(nbZones);
 
 
         //THEN
+        assertThat(mostDenseZone).isValid();
         Zone inside = new Zone(89.5, 179.5, 90, 180);
-        assertTrue(mostDenseZone.contains(inside));
+        assertTrue(mostDenseZone.get().contains(inside));
 
         Zone outsideOne = new Zone(90, 179.5, 90.5, 180);
-        assertFalse(mostDenseZone.contains(outsideOne));
+        assertFalse(mostDenseZone.get().contains(outsideOne));
 
         Zone outsideTwo = new Zone(89.5, 180, 90, 180.5);
-        assertFalse(mostDenseZone.contains(outsideTwo));
+        assertFalse(mostDenseZone.get().contains(outsideTwo));
 
         Zone outsideThree = new Zone(90, 180, 90.5, 180.5);
-        assertFalse(mostDenseZone.contains(outsideThree));
+        assertFalse(mostDenseZone.get().contains(outsideThree));
     }
 
     @Test
@@ -113,11 +124,12 @@ class ZoneServiceTest {
         int nbZones = 20000000;
 
         //when
-        List<Zone> mostDenseZone = zoneService.findMostDenseZone(nbZones, pointOfInterests);
+        Validation<Seq<Error>, List<Zone>> mostDenseZone = zoneService.findMostDenseZone(nbZones);
 
         //THEN
         //NbZones is greater than size list return by findMostDenseZone so we return all the elements from the list
-        assertEquals(12, mostDenseZone.size());
+        assertThat(mostDenseZone).isValid();
+        assertEquals(12, mostDenseZone.get().size());
 
 
     }

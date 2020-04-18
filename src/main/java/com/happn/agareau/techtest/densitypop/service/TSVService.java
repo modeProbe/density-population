@@ -1,8 +1,11 @@
 package com.happn.agareau.techtest.densitypop.service;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
-import com.happn.agareau.techtest.densitypop.error.ErrorCode;
-import com.happn.agareau.techtest.densitypop.error.ServiceException;
+import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
+import com.happn.agareau.techtest.densitypop.error.Error;
+import io.vavr.collection.Seq;
+import io.vavr.control.Try;
+import io.vavr.control.Validation;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,57 +13,63 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
+import static com.happn.agareau.techtest.densitypop.error.Error.ReadFileError;
+import static com.happn.agareau.techtest.densitypop.error.Error.UploadFileError;
+import static java.time.LocalDateTime.now;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @AllArgsConstructor
+
 public class TSVService {
 
     private static final Logger logger = LoggerFactory.getLogger(TSVService.class);
     private static final String TAB = "\\t";
     private static final int NB_ELEMS_PER_LINE = 3;
     private static final String PREFIX_TEMP_FILE = "temp-file-name";
+    private final SingletonListPOI singletonListPOI;
 
-    public List<PointOfInterest> uploadAndReadTSVFileAndReturnListPOI(MultipartFile file) {
-        try {
-            File temp = File.createTempFile(PREFIX_TEMP_FILE + LocalDateTime.now(), ".tsv");
-            temp.deleteOnExit();
-            file.transferTo(temp);
-            return createListPOIFromFile(temp);
-        } catch (IOException ioex) {
-            throw new ServiceException(ErrorCode.UPLOAD_ERROR, file.getName(), ioex);
-        }
+    public Validation<Seq<Error>, List<PointOfInterest>> uploadAndReadTSVFileAndReturnListPOI(MultipartFile file) {
+        return Try.of(() -> File
+                .createTempFile(PREFIX_TEMP_FILE + now(), ".tsv"))
+                .toValidation(e -> new UploadFileError(file.getName(), e))
+                .mapError(Error::logThenBuildSeqError)
+                .flatMap(file1 -> Try.run(() -> file.transferTo(file1))
+                        .toValidation(e -> new UploadFileError(file.getName(), e))
+                        .mapError(Error::logThenBuildSeqError)
+                        .map(aVoid -> file1))
+                .peek(File::deleteOnExit)
+                .flatMap(this::createListPOIFromFile)
+                .peek(singletonListPOI::setPointOfInterests);
     }
 
     //public for testing purpose
-    public List<PointOfInterest> createListPOIFromFile(File file) {
+    public Validation<Seq<Error>, List<PointOfInterest>> createListPOIFromFile(File file) {
 
         return readTSVFile(file)
-                .stream()
-                .skip(1)
-                .map(mapLineToPOI)
-                .collect(Collectors.toList());
+                .map(lines -> lines
+                        .stream()
+                        .skip(1)
+                        .map(mapLineToPOI)
+                        .collect(toList()));
+
     }
 
-    private List<String> readTSVFile(File file) {
-        List<String> lines;
-        try (Stream<String> streamedLines = Files.lines(file.toPath())) {
-            lines = streamedLines
-                    .filter(line -> !line.isEmpty())
-                    .filter(isLineCorrect)
-                    .collect(Collectors.toList());
-        } catch (IOException ioex) {
-            throw new ServiceException(ErrorCode.READING_FILE_ERROR, file.getName(), ioex);
-        }
-        return lines;
+    private Validation<Seq<Error>, List<String>> readTSVFile(File file) {
 
+        return Try.of(() -> Files
+                .lines(file.toPath()))
+                .toValidation(e -> new ReadFileError(file.getName(), e))
+                .mapError(Error::logThenBuildSeqError)
+                .map(stringStream -> stringStream
+                        .filter(line -> !line.isEmpty())
+                        .filter(isLineCorrect)
+                        .collect(toList()));
     }
 
     private final Predicate<String> isLineCorrect = (line) -> {

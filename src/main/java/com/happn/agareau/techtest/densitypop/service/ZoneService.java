@@ -1,72 +1,72 @@
 package com.happn.agareau.techtest.densitypop.service;
 
 import com.happn.agareau.techtest.densitypop.domain.PointOfInterest;
+import com.happn.agareau.techtest.densitypop.domain.SingletonListPOI;
 import com.happn.agareau.techtest.densitypop.domain.Zone;
-import com.happn.agareau.techtest.densitypop.error.ErrorCode;
-import com.happn.agareau.techtest.densitypop.error.ServiceException;
+import com.happn.agareau.techtest.densitypop.error.Error;
 import com.happn.agareau.techtest.densitypop.properties.CoordinatesProperties;
+import io.vavr.collection.Seq;
+import io.vavr.control.Try;
+import io.vavr.control.Validation;
 import lombok.AllArgsConstructor;
+import lombok.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toMap;
+import static com.happn.agareau.techtest.densitypop.error.Error.NbZonesNegError;
+import static java.util.Collections.reverseOrder;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.*;
 
 @Service
 @AllArgsConstructor
+@Value
 public class ZoneService {
 
-    private CoordinatesProperties coordinatesProperties;
+    SingletonListPOI singletonListPOI;
+    CoordinatesProperties coordinatesProperties;
 
-    public long nbPoiInZone(Zone zone, List<PointOfInterest> pointOfInterestList) {
+    public long nbPoiInZone(Zone zone) {
 
-        List<PointOfInterest> collect = Optional.ofNullable(pointOfInterestList)
-                .orElseGet(ArrayList::new)
+        return singletonListPOI.getPointOfInterests()
                 .stream()
                 .filter(pointOfInterest -> pointOfInterest.getLatitude() >= zone.getMinLat() && pointOfInterest.getLatitude() <= zone.getMaxLat())
                 .filter(pointOfInterest -> pointOfInterest.getLongitude() >= zone.getMinLong() && pointOfInterest.getLongitude() <= zone.getMaxLong())
-                .collect(Collectors.toList());
-
-        return collect.size();
+                .count();
     }
 
+    public Validation<Seq<Error>, List<Zone>> findMostDenseZone(int nbZones) {
 
-    public List<Zone> findMostDenseZone(int nbZones, List<PointOfInterest> pointOfInterests) {
-
-        if (nbZones < 0) {
-            throw new ServiceException(ErrorCode.NB_ZONES_NEGATIVE);
-        }
-
-        Map<Zone, Long> mapZoneNbPoi = Optional
-                .ofNullable(pointOfInterests)
-                .orElseGet(ArrayList::new)
+        Map<Zone, Long> mapZoneNbPoi = singletonListPOI.getPointOfInterests()
                 .stream()
-                .filter(isPOICorrect)
+                .filter(poi -> isPOICorrect.test(poi, coordinatesProperties))
                 .flatMap(getZoneFromPoi)
                 .filter(this::checkZone)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+                .collect(groupingBy(identity(), counting()));
 
         LinkedHashMap<Zone, Long> sortedMap = mapZoneNbPoi
                 .entrySet()
                 .stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .sorted(reverseOrder(Entry.comparingByValue()))
                 .collect(
-                        toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
+                        toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e2,
                                 LinkedHashMap::new));
 
-        return sortedMap
-                .keySet()
-                .stream()
-                .limit(nbZones)
-                .collect(Collectors.toList());
+        return Try.of(() -> sortedMap.keySet().stream().limit(nbZones))
+                .toValidation(e -> new NbZonesNegError(nbZones, e))
+                .mapError(Error::logThenBuildSeqError)
+                .map(zoneStream -> zoneStream.collect(toList()));
     }
 
     //Public for testing purpose
-    public final Function<PointOfInterest, Stream<Zone>> getZoneFromPoi = (pointOfInterest) -> {
+    public Function<PointOfInterest, Stream<Zone>> getZoneFromPoi = (pointOfInterest) -> {
         double currentLatitude = pointOfInterest.getLatitude();
         double currentLongitude = pointOfInterest.getLongitude();
         long closestLat = Math.round(currentLatitude);
@@ -143,10 +143,11 @@ public class ZoneService {
     }
 
     private boolean checkZone(Zone zone) {
-        return zone.getMinLat() >= coordinatesProperties.getMinLatitude() && zone.getMaxLat() <= coordinatesProperties.getMaxLatitude() && zone.getMinLong() >= coordinatesProperties.getMinLongitude() && zone.getMaxLong() <= coordinatesProperties.getMaxLongitude();
+        return zone.getMinLat() >= coordinatesProperties.getMinLatitude() && zone.getMaxLat() <= coordinatesProperties.getMaxLatitude()
+                && zone.getMinLong() >= coordinatesProperties.getMinLongitude() && zone.getMaxLong() <= coordinatesProperties.getMaxLongitude();
     }
 
-    private final Predicate<PointOfInterest> isPOICorrect = (pointOfInterest) -> {
+    BiPredicate<PointOfInterest, CoordinatesProperties> isPOICorrect = (pointOfInterest, coordinatesProperties) -> {
         boolean correctLatitude = pointOfInterest.getLatitude() >= coordinatesProperties.getMinLatitude() && pointOfInterest.getLatitude() <= coordinatesProperties.getMaxLatitude();
         boolean correctLongitude = pointOfInterest.getLongitude() >= coordinatesProperties.getMinLongitude() && pointOfInterest.getLongitude() <= coordinatesProperties.getMaxLongitude();
         return correctLatitude && correctLongitude;

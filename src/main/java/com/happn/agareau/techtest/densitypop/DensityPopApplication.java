@@ -1,13 +1,12 @@
 package com.happn.agareau.techtest.densitypop;
 
-import lombok.AllArgsConstructor;
+import com.happn.agareau.techtest.densitypop.properties.CoordinatesProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @SpringBootApplication
-@AllArgsConstructor
-@ConfigurationPropertiesScan("com.happn.agareau.techtest.densitypop.properties")
+@EnableConfigurationProperties(CoordinatesProperties.class)
 public class DensityPopApplication {
 
     public static void main(String[] args) {
