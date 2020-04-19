@@ -1,0 +1,47 @@
+[
+  {
+    "id": "id0",
+    "latitude": -48.6,
+    "longitude": -37.7
+  },
+  {
+    "id": "id1",
+    "latitude": -27.1,
+    "longitude": 8.4
+  },
+  {
+    "id": "id2",
+    "latitude": 6.6,
+    "longitude": -6.9
+  },
+  {
+    "id": "id3",
+    "latitude": -2.3,
+    "longitude": 38.3
+  },
+  {
+    "id": "id4",
+    "latitude": 6.8,
+    "longitude": -6.9
+  },
+  {
+    "id": "id5",
+    "latitude": -2.5,
+    "longitude": 38.3
+  },
+  {
+    "id": "id6",
+    "latitude": 0.1,
+    "longitude": -0.1
+  },
+  {
+    "id": "id7",
+    "latitude": -2.1,
+    "longitude": 38.1
+  },
+  {
+    "id": "id8",
+    "latitude": -2.1,
+    "longitude": 33.1
+  }
+]

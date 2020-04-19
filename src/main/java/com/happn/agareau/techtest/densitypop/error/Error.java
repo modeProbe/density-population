@@ -27,7 +27,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return format("Unable to read file : %s%n%s", name, throwable);
+            return format("Unable to read file : %s %s", name, throwable);
         }
     }
 
@@ -42,7 +42,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return format("Number of zones cannot be negative: %d%n%s", nbZones, throwable);
+            return format("Number of zones cannot be negative: %d %s", nbZones, throwable);
         }
     }
 
@@ -57,7 +57,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return format("Unable to create POI : %s%n%s", name, throwable);
+            return format("Unable to create POI : %s %s", name, throwable);
         }
     }
 
@@ -73,7 +73,7 @@ public abstract class Error {
 
         @Override
         public String getMessage() {
-            return format("Unable to upload file : %s%n%s", name, throwable);
+            return format("Unable to upload file : %s %s", name, throwable);
         }
     }
 

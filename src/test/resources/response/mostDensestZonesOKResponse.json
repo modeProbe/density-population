@@ -1,0 +1,14 @@
+[
+  {
+    "min_lat": -2.5,
+    "min_long": 38.0,
+    "max_lat": -2.0,
+    "max_long": 38.5
+  },
+  {
+    "min_lat": 6.5,
+    "min_long": -7.0,
+    "max_lat": 7.0,
+    "max_long": -6.5
+  }
+]

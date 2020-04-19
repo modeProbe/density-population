@@ -21,7 +21,7 @@ public class FileUploadController {
     TSVService tsvService;
 
     @PostMapping(value = "/upload", produces = "application/json")
-    public ResponseEntity<?> handleFileUpload(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadTsvFile(@RequestParam("file") MultipartFile file) {
         return tsvService.uploadAndReadTSVFileAndReturnListPOI(file)
                 .fold(errors -> status(INTERNAL_SERVER_ERROR).body(errors.toJavaList()),
                         pointOfInterests -> status(CREATED).body(pointOfInterests));
