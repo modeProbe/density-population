@@ -4,6 +4,13 @@ This is a simple application exposes services to calculate density population.
 This is a Spring boot application written in JAVA12 and it uses MAVEN for building and packaging.
 by default the app is running on port 8080 
 
+To build the app just open a terminal and go in the app folder and run the following command:
+**mvn clean install**
+
+To launch the app after building it: 
+
+**java -jar {artifact_name}**
+
 By default the world is divided into a grid with latitude from -90 to 90 and longitude from -180 to 180
 This values can be modified. You just have to go on the application-properties file and change the values of the following parameters: 
 **coordinates.min-latitude
