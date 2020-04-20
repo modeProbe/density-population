@@ -1,10 +1,11 @@
 Density Population Calculator
 
-This is a simple application exposes services to calculate density population. 
+This is a simple application that exposes services to calculate density population. 
 This is a Spring boot application written in JAVA12 and it uses MAVEN for building and packaging.
 by default the app is running on port 8080 
 
 To build the app just open a terminal and go in the app folder and run the following command:
+
 **mvn clean install**
 
 To launch the app after building it: 
